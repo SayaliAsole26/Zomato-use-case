@@ -73,6 +73,20 @@ def test_health_returns_dataset_status(api_client, mock_repository):
     assert body["restaurant_count"] == mock_repository.count.return_value
 
 
+def test_health_returns_starting_while_dataset_loading():
+    app = create_app(enable_rate_limit=False, mount_frontend=False, preload_dataset=False)
+
+    with TestClient(app) as client:
+        client.app.state.dataset_loading = True
+        response = client.get("/health")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "starting"
+    assert body["dataset_loaded"] is False
+    assert body["restaurant_count"] == 0
+
+
 def test_root_returns_json_without_frontend_dist(api_client):
     response = api_client.get("/")
 

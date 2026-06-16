@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import logging
 import time
 from collections import defaultdict, deque
@@ -76,28 +78,45 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+def _preload_dataset_sync() -> tuple[bool, int]:
+    """Load repository in a worker thread (blocking I/O)."""
+    repo = get_repository_dep()
+    count = repo.count()
+    return count > 0, count
+
+
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
     setup_logging()
     app.state.dataset_ready = False
     app.state.restaurant_count = 0
+    app.state.dataset_loading = False
 
-    if getattr(app.state, "preload_dataset", True):
+    async def _preload() -> None:
+        if not getattr(app.state, "preload_dataset", True):
+            return
+        app.state.dataset_loading = True
         try:
-            logger.info("Preloading restaurant dataset for production...")
-            repo = get_repository_dep()
-            count = repo.count()
-            app.state.dataset_ready = count > 0
+            logger.info("Preloading restaurant dataset in background...")
+            loop = asyncio.get_running_loop()
+            ready, count = await loop.run_in_executor(None, _preload_dataset_sync)
+            app.state.dataset_ready = ready
             app.state.restaurant_count = count
             logger.info(
                 "Dataset preload complete: ready=%s count=%d",
-                app.state.dataset_ready,
+                ready,
                 count,
             )
         except Exception as exc:
             logger.exception("Dataset preload failed: %s", exc)
+        finally:
+            app.state.dataset_loading = False
 
+    preload_task = asyncio.create_task(_preload())
     yield
+    preload_task.cancel()
+    with contextlib.suppress(asyncio.CancelledError):
+        await preload_task
 
 
 def create_app(
@@ -147,11 +166,18 @@ def create_app(
 
     @app.get("/health", response_model=HealthResponse, tags=["health"])
     def health() -> HealthResponse:
-        """Fast health check using startup preload state (Railway-safe)."""
+        """Fast health check — always 200 so Railway passes while dataset loads."""
         loaded = bool(getattr(app.state, "dataset_ready", False))
+        loading = bool(getattr(app.state, "dataset_loading", False))
         count = int(getattr(app.state, "restaurant_count", 0))
+        if loaded:
+            status = "ok"
+        elif loading:
+            status = "starting"
+        else:
+            status = "degraded"
         return HealthResponse(
-            status="ok" if loaded else "degraded",
+            status=status,
             dataset_loaded=loaded,
             restaurant_count=count,
         )
