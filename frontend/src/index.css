@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-surface text-on-surface font-sans antialiased;
+  }
+}
+
+@layer components {
+  .material-symbols-outlined {
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+    vertical-align: middle;
+  }
+
+  .material-symbols-outlined.filled {
+    font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24;
+  }
+
+  .ai-explanation {
+    @apply rounded-xl p-4;
+    background-color: #f0f2f5;
+    border-left: 4px solid #b12037;
+  }
+
+  .restaurant-card {
+    @apply transition-all duration-200;
+  }
+
+  .restaurant-card:hover {
+    @apply shadow-card-hover border-outline-variant;
+    transform: translateY(-4px);
+  }
+
+  .btn-primary {
+    @apply bg-primary text-on-primary rounded-xl font-semibold shadow-sm hover:opacity-90 active:scale-[0.98] transition-all;
+  }
+
+  .chip {
+    @apply px-4 py-1 rounded-full text-sm font-semibold border border-outline-variant bg-surface hover:bg-surface-container-high transition-all cursor-pointer;
+  }
+
+  .chip-selected {
+    @apply bg-primary text-on-primary border-primary;
+  }
+
+  .budget-pill {
+    @apply flex-1 py-2 border border-outline-variant rounded-full text-sm font-semibold hover:bg-surface-container-high transition-all;
+  }
+
+  .budget-pill-selected {
+    @apply bg-primary text-on-primary border-primary;
+  }
+}
