@@ -76,30 +76,29 @@ export function RestaurantCard({
 
         {aiReason && <AIReasoningCard reason={aiReason} />}
 
-        <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-outline-variant">
-          <button type="button" className="btn-primary px-4 py-2 text-sm">
-            Book Table
-          </button>
-          {onSave && (
-            <button
-              type="button"
-              onClick={onSave}
-              className="chip flex items-center gap-1"
-              aria-pressed={saved}
-            >
-              <span className="material-symbols-outlined text-base">
-                {saved ? "favorite" : "favorite_border"}
-              </span>
-              {saved ? "Saved" : "Save"}
-            </button>
-          )}
-          {onShare && (
-            <button type="button" onClick={onShare} className="chip flex items-center gap-1">
-              <span className="material-symbols-outlined text-base">share</span>
-              Share
-            </button>
-          )}
-        </div>
+        {(onSave || onShare) && (
+          <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-outline-variant">
+            {onSave && (
+              <button
+                type="button"
+                onClick={onSave}
+                className="chip flex items-center gap-1"
+                aria-pressed={saved}
+              >
+                <span className="material-symbols-outlined text-base">
+                  {saved ? "favorite" : "favorite_border"}
+                </span>
+                {saved ? "Saved" : "Save"}
+              </button>
+            )}
+            {onShare && (
+              <button type="button" onClick={onShare} className="chip flex items-center gap-1">
+                <span className="material-symbols-outlined text-base">share</span>
+                Share
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </article>
   );

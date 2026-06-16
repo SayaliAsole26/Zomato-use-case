@@ -212,7 +212,6 @@ Environment variables:
 - User accounts, JWT auth, server-side favorites and history
 - PostgreSQL + Redis
 - Vector search and personalized learning
-- Table booking integration
 - Real-time availability
 - Multi-city support
 - Voice-based restaurant search

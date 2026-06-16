@@ -44,7 +44,6 @@ Restaurant card includes:
 - Rating badge
 - AI reasoning panel
 - Match percentage
-- Book Table CTA (placeholder)
 - Share button
 - Save/Favorite button (local storage)
 
