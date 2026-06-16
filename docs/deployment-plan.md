@@ -262,7 +262,7 @@ Saved items use **localStorage** only (Zustand persist). No backend call; works 
 | Secrets | Never commit keys; use Railway/Vercel env UI only |
 | CI | Run `pytest` and `npm run build` on PR before merge |
 | Monitoring | Watch Railway logs for dataset load and Groq errors |
-| Slim image | Optional prod `requirements-prod.txt` without `streamlit` / `pytest` |
+| Slim image | Production uses `requirements.txt` only (no Streamlit); optional legacy UI via `requirements-dev.txt` |
 
 ---
 

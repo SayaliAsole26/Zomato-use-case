@@ -77,9 +77,10 @@ Then open **http://localhost:8000** (serves `frontend/dist` SPA).
 
 Demo: Location `BTM`, Budget `Medium`, Cuisine `North Indian`, Min rating `4.0` → **Find Restaurants**.
 
-Legacy Streamlit UI (optional):
+Legacy Streamlit UI (optional — not installed in production):
 
 ```bash
+pip install -r requirements-dev.txt
 streamlit run src/app/main.py
 ```
 
