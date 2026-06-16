@@ -55,6 +55,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         path = request.url.path
         if (
             path.startswith("/health")
+            or path.endswith("/health")
             or path.startswith("/assets")
             or path.startswith("/openapi")
             or path in ("/", "/discover", "/search", "/saved")
@@ -119,6 +120,24 @@ async def _lifespan(app: FastAPI):
         await preload_task
 
 
+def _health_response(app: FastAPI) -> HealthResponse:
+    """Build health payload from app startup state."""
+    loaded = bool(getattr(app.state, "dataset_ready", False))
+    loading = bool(getattr(app.state, "dataset_loading", False))
+    count = int(getattr(app.state, "restaurant_count", 0))
+    if loaded:
+        status = "ok"
+    elif loading:
+        status = "starting"
+    else:
+        status = "degraded"
+    return HealthResponse(
+        status=status,
+        dataset_loaded=loaded,
+        restaurant_count=count,
+    )
+
+
 def create_app(
     *,
     settings: Settings | None = None,
@@ -161,26 +180,15 @@ def create_app(
             "service": "CulinaAI Restaurant Recommendations API",
             "docs": "/docs",
             "health": "/health",
+            "health_api": f"{API_PREFIX}/health",
             "api": API_PREFIX,
         }
 
     @app.get("/health", response_model=HealthResponse, tags=["health"])
+    @app.get(f"{API_PREFIX}/health", response_model=HealthResponse, tags=["health"])
     def health() -> HealthResponse:
         """Fast health check — always 200 so Railway passes while dataset loads."""
-        loaded = bool(getattr(app.state, "dataset_ready", False))
-        loading = bool(getattr(app.state, "dataset_loading", False))
-        count = int(getattr(app.state, "restaurant_count", 0))
-        if loaded:
-            status = "ok"
-        elif loading:
-            status = "starting"
-        else:
-            status = "degraded"
-        return HealthResponse(
-            status=status,
-            dataset_loaded=loaded,
-            restaurant_count=count,
-        )
+        return _health_response(app)
 
     @app.get(
         f"{API_PREFIX}/locations",

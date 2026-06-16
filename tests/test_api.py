@@ -64,13 +64,14 @@ def api_client(mock_repository, mock_llm_client):
 
 
 def test_health_returns_dataset_status(api_client, mock_repository):
-    response = api_client.get("/health")
+    for path in ("/health", "/api/v1/health"):
+        response = api_client.get(path)
 
-    assert response.status_code == 200
-    body = response.json()
-    assert body["status"] == "ok"
-    assert body["dataset_loaded"] is True
-    assert body["restaurant_count"] == mock_repository.count.return_value
+        assert response.status_code == 200
+        body = response.json()
+        assert body["status"] == "ok"
+        assert body["dataset_loaded"] is True
+        assert body["restaurant_count"] == mock_repository.count.return_value
 
 
 def test_health_returns_starting_while_dataset_loading():
