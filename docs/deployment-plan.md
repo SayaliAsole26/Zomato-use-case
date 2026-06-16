@@ -173,12 +173,25 @@ Commit and push before deploying.
 
 ### 2.2 Create the Vercel project
 
+> **Important:** The Python backend deploys on **Railway only**. Vercel must deploy **frontend only**.
+> If Root Directory is the repo root, Vercel sees `requirements.txt` + FastAPI and fails with:
+> `No FastAPI entrypoint found`.
+
 1. [vercel.com](https://vercel.com) → **Add New → Project** → import GitHub repo
-2. **Root Directory:** `frontend`
-3. **Framework Preset:** Vite
+2. **Root Directory:** click **Edit** → set to **`frontend`**
+3. **Framework Preset:** Vite (auto-detected)
 4. **Build Command:** `npm run build`
 5. **Output Directory:** `dist`
 6. **Install Command:** `npm install`
+
+| Setting | Value |
+|---------|--------|
+| Root Directory | `frontend` |
+| Build Command | `npm run build` |
+| Output Directory | `dist` |
+| Install Command | `npm install` |
+
+Do **not** deploy from the repo root on Vercel — that is for Railway (`requirements.txt`, `Procfile`).
 
 ### 2.3 Environment variables (Vercel)
 
@@ -220,6 +233,8 @@ Saved items use **localStorage** only (Zustand persist). No backend call; works 
 
 | Issue | Action |
 |-------|--------|
+| `No FastAPI entrypoint found` | Set **Root Directory** to `frontend` (backend is on Railway, not Vercel) |
+| Build fails / no `package.json` | Confirm Root Directory is `frontend`, not repo root |
 | “Could not load restaurant dataset” | Wrong or missing `VITE_API_URL`; redeploy after fixing |
 | CORS errors | Confirm Railway URL in `VITE_API_URL`; backend CORS is `*` |
 | 404 on `/search` refresh | Add `vercel.json` rewrites (§2.4) |

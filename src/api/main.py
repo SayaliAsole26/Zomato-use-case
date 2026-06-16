@@ -79,6 +79,24 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
     setup_logging()
+    app.state.dataset_ready = False
+    app.state.restaurant_count = 0
+
+    if getattr(app.state, "preload_dataset", True):
+        try:
+            logger.info("Preloading restaurant dataset for production...")
+            repo = get_repository_dep()
+            count = repo.count()
+            app.state.dataset_ready = count > 0
+            app.state.restaurant_count = count
+            logger.info(
+                "Dataset preload complete: ready=%s count=%d",
+                app.state.dataset_ready,
+                count,
+            )
+        except Exception as exc:
+            logger.exception("Dataset preload failed: %s", exc)
+
     yield
 
 
@@ -87,6 +105,7 @@ def create_app(
     settings: Settings | None = None,
     enable_rate_limit: bool = True,
     mount_frontend: bool = True,
+    preload_dataset: bool = True,
 ) -> FastAPI:
     """Application factory for production and tests."""
     app = FastAPI(
@@ -95,6 +114,7 @@ def create_app(
         version="1.0.0",
         lifespan=_lifespan,
     )
+    app.state.preload_dataset = preload_dataset
 
     app.add_middleware(
         CORSMiddleware,
@@ -111,16 +131,25 @@ def create_app(
     def _resolve_settings() -> Settings:
         return settings or get_settings_dep()
 
-    @app.get("/health", response_model=HealthResponse, tags=["health"])
-    def health(repo: RestaurantRepository = Depends(get_repository_dep)) -> HealthResponse:
-        try:
-            count = repo.count()
-            loaded = count > 0
-        except Exception as exc:
-            logger.error("health check failed: %s", exc)
-            loaded = False
-            count = 0
+    @app.get("/", tags=["root"])
+    def read_root():
+        """Always available — Railway and browsers often hit `/`."""
+        index_file = FRONTEND_DIST / "index.html"
+        if mount_frontend and index_file.is_file():
+            return FileResponse(index_file)
+        return {
+            "message": "CulinaAI Restaurant Recommendations API",
+            "service": "CulinaAI Restaurant Recommendations API",
+            "docs": "/docs",
+            "health": "/health",
+            "api": API_PREFIX,
+        }
 
+    @app.get("/health", response_model=HealthResponse, tags=["health"])
+    def health() -> HealthResponse:
+        """Fast health check using startup preload state (Railway-safe)."""
+        loaded = bool(getattr(app.state, "dataset_ready", False))
+        count = int(getattr(app.state, "restaurant_count", 0))
         return HealthResponse(
             status="ok" if loaded else "degraded",
             dataset_loaded=loaded,
@@ -167,10 +196,6 @@ def create_app(
             app.mount("/assets", StaticFiles(directory=assets_dir), name="frontend-assets")
 
         index_file = FRONTEND_DIST / "index.html"
-
-        @app.get("/", include_in_schema=False)
-        def serve_spa_root() -> FileResponse:
-            return FileResponse(index_file)
 
         @app.get("/discover", include_in_schema=False)
         def serve_spa_discover() -> FileResponse:

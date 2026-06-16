@@ -60,7 +60,7 @@ def sample_records():
 @pytest.fixture
 def design_client(sample_records):
     mock_repo = MockRepository(sample_records)
-    app = create_app(enable_rate_limit=False, mount_frontend=False)
+    app = create_app(enable_rate_limit=False, mount_frontend=False, preload_dataset=False)
     app.dependency_overrides[get_repository_dep] = lambda: mock_repo
 
     with TestClient(app) as client:

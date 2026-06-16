@@ -51,11 +51,13 @@ def mock_llm_client():
 
 @pytest.fixture
 def api_client(mock_repository, mock_llm_client):
-    app = create_app(enable_rate_limit=False, mount_frontend=False)
+    app = create_app(enable_rate_limit=False, mount_frontend=False, preload_dataset=False)
     app.dependency_overrides[get_repository_dep] = lambda: mock_repository
     app.dependency_overrides[get_llm_client_dep] = lambda: mock_llm_client
 
     with TestClient(app) as test_client:
+        test_client.app.state.dataset_ready = True
+        test_client.app.state.restaurant_count = mock_repository.count.return_value
         yield test_client
 
     app.dependency_overrides.clear()
@@ -69,6 +71,16 @@ def test_health_returns_dataset_status(api_client, mock_repository):
     assert body["status"] == "ok"
     assert body["dataset_loaded"] is True
     assert body["restaurant_count"] == mock_repository.count.return_value
+
+
+def test_root_returns_json_without_frontend_dist(api_client):
+    response = api_client.get("/")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["message"] == "CulinaAI Restaurant Recommendations API"
+    assert body["health"] == "/health"
+    assert body["docs"] == "/docs"
 
 
 def test_recommendations_success(api_client, mock_llm_client):
